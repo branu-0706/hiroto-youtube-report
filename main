@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTubeチャンネルパフォーマンス インフォグラフィック</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #F7F9F9;
+            color: #2E2E2E;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid #E5E7EB;
+        }
+        .stat-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #FF6B6B;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: #4B5563;
+            margin-top: 0.5rem;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1F2937;
+            margin-bottom: 1rem;
+            padding-top: 5rem; 
+            margin-top: -4rem; 
+        }
+        .section-subtitle {
+            font-size: 1.125rem;
+            color: #4B5563;
+            margin-bottom: 2.5rem;
+            max-width: 3xl;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .nav-link {
+            color: #374151;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #FF6B6B;
+            color: white;
+        }
+        .accordion-button {
+            background-color: #fff;
+            color: #2E2E2E;
+            cursor: pointer;
+            padding: 1rem;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1.125rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            border-radius: 0.5rem;
+            border: 1px solid #E5E7EB;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .accordion-button:hover {
+            background-color: #f0f0f0;
+        }
+        .accordion-content {
+            padding: 0 1rem;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            border-left: 1px solid #E5E7EB;
+            border-right: 1px solid #E5E7EB;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .accordion-content.open {
+            padding: 1rem;
+        }
+        .accordion-item:not(:last-child) .accordion-button {
+             border-bottom: none;
+             border-bottom-left-radius: 0;
+             border-bottom-right-radius: 0;
+        }
+         .accordion-item:not(:first-child) .accordion-button {
+             border-top-left-radius: 0;
+             border-top-right-radius: 0;
+        }
+        .accordion-item:first-child .accordion-button {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+         .accordion-item:last-child .accordion-button.open ~ .accordion-content {
+         }
+         .accordion-item:last-child .accordion-button:not(.open) {
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+         }
+
+        .arrow-icon {
+            transition: transform 0.3s ease;
+        }
+        .arrow-icon.rotated {
+            transform: rotate(180deg);
+        }
+        .highlight {
+            color: #FF6B6B;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav id="mainNav" class="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-[#FF6B6B]">庭活チャンネル分析</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-1">
+                        <a href="#overview" class="nav-link">概要</a>
+                        <a href="#content" class="nav-link">コンテンツ分析</a>
+                        <a href="#audience" class="nav-link">視聴者インサイト</a>
+                        <a href="#swot" class="nav-link">課題と機会</a>
+                        <a href="#strategy" class="nav-link">成長戦略</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobileMenuButton" class="text-[#FF6B6B] hover:text-[#4ECDC4] focus:outline-none p-2">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobileMenu" class="md:hidden hidden bg-white shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#overview" class="nav-link block text-center">概要</a>
+                <a href="#content" class="nav-link block text-center">コンテンツ分析</a>
+                <a href="#audience" class="nav-link block text-center">視聴者インサイト</a>
+                <a href="#swot" class="nav-link block text-center">課題と機会</a>
+                <a href="#strategy" class="nav-link block text-center">成長戦略</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
+
+        <section id="overview" class="mb-16 text-center">
+            <h1 class="section-title">チャンネルパフォーマンス概要</h1>
+            <p class="section-subtitle">過去90日間の主要指標を通じて、チャンネルの現状とブランド認知度への貢献を概観します。</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalViews90d">17.5万</div>
+                    <div class="stat-label">総視聴回数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalWatchTime90d">916.8時間</div>
+                    <div class="stat-label">総再生時間</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="subscribersGained90d">+90人</div>
+                    <div class="stat-label">チャンネル登録者増</div>
+                </div>
+            </div>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-4 text-center">認知度ファネル（概念図）</h3>
+                <p class="text-gray-600 mb-6 text-center">インプレッションから視聴、そしてチャンネル登録に至る流れは、認知度獲得の効率を示します。広範なリーチに対し、登録への転換が今後の焦点です。</p>
+                <div class="chart-container">
+                    <canvas id="awarenessFunnelChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="content" class="mb-16">
+            <h2 class="section-title text-center">コンテンツ分析</h2>
+            <p class="section-subtitle text-center">動画パフォーマンスを深掘りし、視聴者を惹きつける要素とショート動画の役割を分析します。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">人気動画トップ5（過去90日間）</h3>
+                    <div class="chart-container h-96">
+                        <canvas id="topVideosChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">視聴維持率（概念図）</h3>
+                    <p class="text-gray-600 mb-4">平均的な視聴者が動画のどのあたりまで視聴を継続しているかを示します。冒頭の引き込みと中盤の工夫が重要です。</p>
+                    <div class="chart-container h-64">
+                        <canvas id="retentionRateChart"></canvas>
+                    </div>
+                     <p class="text-sm text-gray-500 mt-4">最新ショート動画の平均再生率: <span class="highlight">54.4%</span> (「新築で外構はいつ頼むべき？」)</p>
+                </div>
+            </div>
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-6 text-center">YouTubeショート動画の貢献（過去28日間）</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card p-4">
+                        <div class="stat-value text-3xl" id="shortsViews28d">13.1万</div>
+                        <div class="stat-label">視聴回数</div>
+                    </div>
+                    <div class="stat-card p-4">
+                        <div class="stat-value text-3xl" id="shortsEngagement28d">7.6万</div>
+                        <div class="stat-label">エンゲージビュー (+195%)</div>
+                    </div>
+                    <div class="stat-card p-4">
+                        <div class="stat-value text-3xl" id="shortsLikes28d">306</div>
+                        <div class="stat-label">高評価数 (+186%)</div>
+                    </div>
+                    <div class="stat-card p-4">
+                        <div class="stat-value text-3xl" id="shortsSubs28d">+53人</div>
+                        <div class="stat-label">登録者増 (+279%)</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">ショート動画の発見経路</h4>
+                        <div class="chart-container h-72">
+                            <canvas id="shortsTrafficSourceChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">視聴継続 vs スワイプ離脱</h4>
+                        <div class="chart-container h-72">
+                            <canvas id="shortsRetentionSwipeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="audience" class="mb-16">
+            <h2 class="section-title text-center">視聴者インサイト</h2>
+            <p class="section-subtitle text-center">どのような視聴者にコンテンツが届いているのか、その特性を分析します（データは過去28日間）。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">視聴者の年齢層と性別</h3>
+                    <div class="chart-container h-96">
+                        <canvas id="audienceDemographicsChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">その他の視聴者情報</h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li><strong class="text-[#FF6B6B]">ユニーク視聴者数:</strong> <span id="uniqueViewers28d">5.7万人</span></li>
+                        <li><strong class="text-[#FF6B6B]">リピーター数:</strong> <span id="repeatViewers28d">3,294人</span></li>
+                        <li><strong class="text-[#FF6B6B]">期間内登録者増:</strong> <span id="subscribersGained28d">+66人</span> (+288%)</li>
+                        <li><strong class="text-[#FF6B6B]">上位の地域:</strong> 日本 (<span id="topRegionPercentage">93.5%</span>)</li>
+                        <li><strong class="text-[#FF6B6B]">視聴デバイス（総再生時間）:</strong>
+                            <ul class="list-disc list-inside ml-4 text-sm">
+                                <li>携帯電話: <span id="deviceMobile">87.2%</span></li>
+                                <li>パソコン: <span id="deviceDesktop">6.6%</span></li>
+                                <li>テレビ: <span id="deviceTv">3.7%</span></li>
+                                <li>タブレット: <span id="deviceTablet">2.4%</span></li>
+                            </ul>
+                        </li>
+                        <li><strong class="text-[#FF6B6B]">チャンネル登録者の総再生時間比率:</strong>
+                            <ul class="list-disc list-inside ml-4 text-sm">
+                                <li>未登録: <span id="watchTimeUnsubscribed">99.5%</span></li>
+                                <li>登録済み: <span id="watchTimeSubscribed">0.6%</span></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="swot" class="mb-16">
+            <h2 class="section-title text-center">現状の課題と機会</h2>
+            <p class="section-subtitle text-center">分析から見えてきたチャンネルの強み、課題、そして成長機会を整理します。</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="card border-t-4 border-[#4ECDC4]">
+                    <h3 class="text-xl font-semibold text-[#4ECDC4] mb-3">👍 強み</h3>
+                    <ul class="list-disc list-inside space-y-2 text-sm">
+                        <li>高いインプレッションとCTRによる良好なオーガニック検索流入。</li>
+                        <li>「費用相場」など特定テーマでの高い視聴者ニーズの獲得。</li>
+                        <li>ショート動画による広範な新規リーチと高いエンゲージメント率。</li>
+                    </ul>
+                </div>
+                <div class="card border-t-4 border-[#F0A202]">
+                    <h3 class="text-xl font-semibold text-[#F0A202] mb-3">⚠️ 課題</h3>
+                    <ul class="list-disc list-inside space-y-2 text-sm">
+                        <li>視聴回数に対するチャンネル登録者数の伸び悩み（認知度ギャップ）。</li>
+                        <li>総再生時間の大部分が未登録視聴者によるもの。</li>
+                        <li>一部動画における視聴維持率の改善余地。</li>
+                    </ul>
+                </div>
+                <div class="card border-t-4 border-[#5C88DA]">
+                    <h3 class="text-xl font-semibold text-[#5C88DA] mb-3">✨ 機会</h3>
+                    <ul class="list-disc list-inside space-y-2 text-sm">
+                        <li>ショート動画から長尺動画・チャンネル登録への導線強化。</li>
+                        <li>人気コンテンツの深掘りとシリーズ化によるファン育成。</li>
+                        <li>コミュニティ機能の積極活用によるエンゲージメントとロイヤルティ向上。</li>
+                        <li>外部トラフィックソースの開拓とコラボレーション。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy" class="mb-16">
+            <h2 class="section-title text-center">成長戦略アクションプラン</h2>
+            <p class="section-subtitle text-center">分析結果に基づき、ブランド認知度を最大化するための具体的な行動計画を提案します。</p>
+            <div id="strategyAccordion" class="space-y-2">
+                </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-[#2E2E2E] text-[#F7F9F9] py-8 text-center">
+        <div class="container mx-auto px-4">
+            <p class="text-sm">&copy; <span id="currentYear"></span> 庭活チャンネル分析レポート. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const reportData = {
+            ninetyDays: {
+                totalViews: 174791,
+                totalWatchTimeHours: 916.8,
+                subscribersGained: 90,
+                topVideos: [
+                    { title: "【外構のプロが解説】この外構いくら~part2~？実例から学ぶ費用相場【埼玉・東京・千葉】#エクステリア #外構", views: 44690 },
+                    { title: "【外構のプロが解説】囲われた庭づくりで絶対に注意すべきポイントとは？後悔しない外構設計【埼玉・東京・千葉】#庭づくり #外構工事", views: 18955 },
+                    { title: "この外構工事はいくら？PART3 費用の目安と内訳を徹底解説【埼玉・東京・千葉】", views: 13836 },
+                    { title: "【外構のプロガ解説】アプローチ工事の費用と期間はこれだけ!?知って得する予算と工事期間", views: 12523 },
+                    { title: "【外構のプロが解説】人工芝のメリット！一年中美しい庭づくりの秘訣【埼玉・東京・千葉】 #人工芝 #エクステリア #外構", views: 12268 },
+                ],
+            },
+            twentyEightDays: {
+                shortsViews: 131000,
+                shortsEngagedViews: 76000,
+                shortsEngagedViewsChange: "+195%",
+                shortsLikes: 306,
+                shortsLikesChange: "+186%",
+                shortsSubscribersGained: 53,
+                shortsSubscribersGainedChange: "+279%",
+                shortsTrafficSources: {
+                    labels: ["ショートフィード", "ブラウジング機能", "チャンネルページ", "YouTube検索", "関連動画", "その他"],
+                    data: [85.5, 5.2, 3.9, 2.8, 1.0, 1.6]
+                },
+                shortsRetentionSwipe: { // Viewed vs Swiped Away
+                    viewed: 61.5,
+                    swiped: 38.5
+                },
+                uniqueViewers: 57000,
+                repeatViewers: 3294,
+                subscribersGained: 66,
+                subscribersGainedChange: "+288%",
+                audienceDemographics: {
+                    labels: ["13-17", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"],
+                    male: [0, 2.3 * 0.861, 17.9 * 0.861, 24.4 * 0.861, 27.4 * 0.861, 18.0 * 0.861, 9.9 * 0.861],
+                    female: [0, 2.3 * 0.139, 17.9 * 0.139, 24.4 * 0.139, 27.4 * 0.139, 18.0 * 0.139, 9.9 * 0.139]
+                },
+                topRegionPercentage: 93.5,
+                deviceMobile: 87.2,
+                deviceDesktop: 6.6,
+                deviceTv: 3.7,
+                deviceTablet: 2.4,
+                watchTimeUnsubscribed: 99.5,
+                watchTimeSubscribed: 0.6,
+                latestShortRetention: 54.4, // For "【外構のプロが解説】新築で外構はいつ頼むべき？..."
+            },
+            awarenessFunnel: { // Example data, should be derived if possible
+                impressions: 1000000, // Placeholder
+                views: 174791, // Actual 90d views
+                subscribers: 90 // Actual 90d subs gained
+            },
+            strategyPlan: [
+                {
+                    title: "1. コンテンツ戦略の最適化",
+                    details: [
+                        "**高パフォーマンスコンテンツの深掘り:** 成功動画の要素（テーマ、形式、トーン）を分析し、他のコンテンツ制作に応用。",
+                        "**視聴維持率の改善:** 動画冒頭のフック強化、視覚的変化やインタラクティブ要素の追加でエンゲージメントを維持。",
+                        "**YouTubeショート動画の戦略的活用:** 初期認知獲得の「玄関口」と位置づけ、長尺動画への明確なCTAを設定。"
+                    ]
+                },
+                {
+                    title: "2. チャンネル成長とエンゲージメント強化",
+                    details: [
+                        "**SEOと発見性の向上:** キーワード戦略を見直し、タイトル、説明文、タグを最適化。",
+                        "**サムネイルとタイトルのA/Bテスト:** CTRを継続的に改善するため、様々なデザインやコピーをテスト。",
+                        "**コミュニティエンゲージメントの促進:** コメントへの積極返信、コミュニティタブ活用、ライブQ&A開催で視聴者との関係を深化。"
+                    ]
+                },
+                {
+                    title: "3. ターゲットオーディエンスへのリーチ拡大",
+                    details: [
+                        "**トラフィックソースの多様化:** SNS、ブログ、ウェブサイト、メールマガジン等、YouTube外プロモーションを強化。",
+                        "**コラボレーションの検討:** ターゲット層が重複する他チャンネルやインフルエンサーとの協業で新規オーディエンスにリーチ。"
+                    ]
+                }
+            ]
+        };
+
+        // Populate data
+        document.getElementById('totalViews90d').textContent = (reportData.ninetyDays.totalViews / 10000).toFixed(1) + "万";
+        document.getElementById('totalWatchTime90d').textContent = reportData.ninetyDays.totalWatchTimeHours.toLocaleString() + "時間";
+        document.getElementById('subscribersGained90d').textContent = "+" + reportData.ninetyDays.subscribersGained.toLocaleString() + "人";
+
+        document.getElementById('shortsViews28d').textContent = (reportData.twentyEightDays.shortsViews / 10000).toFixed(1) + "万";
+        document.getElementById('shortsEngagement28d').textContent = (reportData.twentyEightDays.shortsEngagedViews / 10000).toFixed(1) + "万 (" + reportData.twentyEightDays.shortsEngagedViewsChange + ")";
+        document.getElementById('shortsLikes28d').textContent = reportData.twentyEightDays.shortsLikes.toLocaleString() + " (" + reportData.twentyEightDays.shortsLikesChange + ")";
+        document.getElementById('shortsSubs28d').textContent = "+" + reportData.twentyEightDays.shortsSubscribersGained.toLocaleString() + "人 (" + reportData.twentyEightDays.shortsSubscribersGainedChange + ")";
+        
+        document.getElementById('uniqueViewers28d').textContent = (reportData.twentyEightDays.uniqueViewers / 10000).toFixed(1) + "万人";
+        document.getElementById('repeatViewers28d').textContent = reportData.twentyEightDays.repeatViewers.toLocaleString() + "人";
+        document.getElementById('subscribersGained28d').textContent = "+" + reportData.twentyEightDays.subscribersGained.toLocaleString() + "人 (" + reportData.twentyEightDays.subscribersGainedChange + ")";
+        document.getElementById('topRegionPercentage').textContent = reportData.twentyEightDays.topRegionPercentage.toFixed(1) + "%";
+        document.getElementById('deviceMobile').textContent = reportData.twentyEightDays.deviceMobile.toFixed(1) + "%";
+        document.getElementById('deviceDesktop').textContent = reportData.twentyEightDays.deviceDesktop.toFixed(1) + "%";
+        document.getElementById('deviceTv').textContent = reportData.twentyEightDays.deviceTv.toFixed(1) + "%";
+        document.getElementById('deviceTablet').textContent = reportData.twentyEightDays.deviceTablet.toFixed(1) + "%";
+        document.getElementById('watchTimeUnsubscribed').textContent = reportData.twentyEightDays.watchTimeUnsubscribed.toFixed(1) + "%";
+        document.getElementById('watchTimeSubscribed').textContent = reportData.twentyEightDays.watchTimeSubscribed.toFixed(1) + "%";
+        
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Chart.js Config
+        const chartFont = { family: "'Noto Sans JP', sans-serif", size: 10 };
+        const primaryColor = '#FF6B6B';
+        const secondaryColor = '#4ECDC4';
+        const accentColor = '#FFE66D';
+        const blueColor = '#5C88DA';
+        const orangeColor = '#F0A202';
+        const grayColor = '#A0AEC0';
+
+        const tooltipTitleCallback = function(tooltipItems) {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+              return label.join(''); 
+            }
+            return label;
+        };
+        
+        const commonChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { font: chartFont } },
+                tooltip: { 
+                    titleFont: chartFont, 
+                    bodyFont: chartFont,
+                    callbacks: { title: tooltipTitleCallback }
+                }
+            },
+            scales: {
+                x: { ticks: { font: chartFont }, grid: { display: false } },
+                y: { ticks: { font: chartFont }, grid: { color: '#E5E7EB' } }
+            }
+        };
+
+        function wrapJapaneseLabel(str, maxWidth = 8) {
+            if (typeof str !== 'string' || str.length <= maxWidth) return str;
+            let result = [];
+            for (let i = 0; i < str.length; i += maxWidth) {
+                result.push(str.substring(i, i + maxWidth));
+            }
+            return result;
+        }
+        
+        // Awareness Funnel Chart
+        const awarenessFunnelCtx = document.getElementById('awarenessFunnelChart').getContext('2d');
+        new Chart(awarenessFunnelCtx, {
+            type: 'bar',
+            data: {
+                labels: ['インプレッション (例)', '総視聴回数 (90日)', '登録者増 (90日)'],
+                datasets: [{
+                    label: '認知度ファネル',
+                    data: [ reportData.awarenessFunnel.impressions, reportData.awarenessFunnel.views, reportData.awarenessFunnel.subscribers ],
+                    backgroundColor: [blueColor, secondaryColor, primaryColor],
+                    barPercentage: 0.6,
+                }]
+            },
+            options: { ...commonChartOptions, indexAxis: 'y', scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, grid: { display: false } } } }
+        });
+
+        // Top Videos Chart
+        const topVideosCtx = document.getElementById('topVideosChart').getContext('2d');
+        new Chart(topVideosCtx, {
+            type: 'bar',
+            data: {
+                labels: reportData.ninetyDays.topVideos.map(v => wrapJapaneseLabel(v.title.split('【')[1] ? v.title.split('【')[1].split('】')[0] : v.title, 12)), // Extract part of title
+                datasets: [{
+                    label: '視聴回数',
+                    data: reportData.ninetyDays.topVideos.map(v => v.views),
+                    backgroundColor: [primaryColor, secondaryColor, accentColor, blueColor, orangeColor],
+                }]
+            },
+            options: { ...commonChartOptions, indexAxis: 'y', scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, grid: { display: false } } } }
+        });
+
+        // Retention Rate Chart
+        const retentionRateCtx = document.getElementById('retentionRateChart').getContext('2d');
+        new Chart(retentionRateCtx, {
+            type: 'line',
+            data: {
+                labels: ['冒頭', '25%', '50%', '75%', '終了時'],
+                datasets: [{
+                    label: '平均視聴維持率 (概念図)',
+                    data: [100, 70, 50, 35, 20], // Conceptual data
+                    borderColor: primaryColor,
+                    backgroundColor: primaryColor + '33',
+                    tension: 0.2,
+                    fill: true
+                }]
+            },
+            options: { ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, suggestedMin: 0, suggestedMax: 100, title: { display: true, text: '維持率 (%)', font: chartFont } } } }
+        });
+
+        // Shorts Traffic Source Chart
+        const shortsTrafficSourceCtx = document.getElementById('shortsTrafficSourceChart').getContext('2d');
+        new Chart(shortsTrafficSourceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: reportData.twentyEightDays.shortsTrafficSources.labels.map(l => wrapJapaneseLabel(l,6)),
+                datasets: [{
+                    label: '発見経路',
+                    data: reportData.twentyEightDays.shortsTrafficSources.data,
+                    backgroundColor: [primaryColor, secondaryColor, accentColor, blueColor, orangeColor, grayColor],
+                    hoverOffset: 4
+                }]
+            },
+            options: { ...commonChartOptions, plugins: { ...commonChartOptions.plugins, legend: { ...commonChartOptions.plugins.legend, position: 'bottom', labels: { font: {...chartFont, size: 9}}}}}
+        });
+
+        // Shorts Retention vs Swipe Chart
+        const shortsRetentionSwipeCtx = document.getElementById('shortsRetentionSwipeChart').getContext('2d');
+        new Chart(shortsRetentionSwipeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['視聴を継続', 'スワイプして消去'],
+                datasets: [{
+                    label: '視聴行動',
+                    data: [reportData.twentyEightDays.shortsRetentionSwipe.viewed, reportData.twentyEightDays.shortsRetentionSwipe.swiped],
+                    backgroundColor: [secondaryColor, primaryColor],
+                    hoverOffset: 4
+                }]
+            },
+            options: { ...commonChartOptions, plugins: { ...commonChartOptions.plugins, legend: { ...commonChartOptions.plugins.legend, position: 'bottom', labels: { font: {...chartFont, size: 9}}}}}
+        });
+        
+        // Audience Demographics Chart
+        const audienceDemographicsCtx = document.getElementById('audienceDemographicsChart').getContext('2d');
+        new Chart(audienceDemographicsCtx, {
+            type: 'bar',
+            data: {
+                labels: reportData.twentyEightDays.audienceDemographics.labels.map(l => wrapJapaneseLabel(l,4)),
+                datasets: [
+                    {
+                        label: '男性',
+                        data: reportData.twentyEightDays.audienceDemographics.male.map(d => d.toFixed(1)),
+                        backgroundColor: blueColor,
+                        stack: 'Stack 0',
+                    },
+                    {
+                        label: '女性',
+                        data: reportData.twentyEightDays.audienceDemographics.female.map(d => d.toFixed(1)),
+                        backgroundColor: primaryColor,
+                        stack: 'Stack 0',
+                    }
+                ]
+            },
+            options: { ...commonChartOptions, scales: { ...commonChartOptions.scales, x: { ...commonChartOptions.scales.x, stacked: true }, y: { ...commonChartOptions.scales.y, stacked: true, title: {display: true, text:'視聴者割合 (%)', font: chartFont} } } }
+        });
+
+        // Accordion for Strategy Plan
+        const accordionContainer = document.getElementById('strategyAccordion');
+        reportData.strategyPlan.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.classList.add('accordion-item', 'card', 'p-0', 'mb-2');
+
+            const button = document.createElement('button');
+            button.classList.add('accordion-button');
+            button.innerHTML = `<span>${item.title}</span> <svg class="arrow-icon w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('accordion-content');
+            const ul = document.createElement('ul');
+            ul.classList.add('list-disc', 'space-y-2', 'pl-5', 'text-gray-700', 'text-sm');
+            item.details.forEach(detail => {
+                const li = document.createElement('li');
+                li.innerHTML = detail;
+                ul.appendChild(li);
+            });
+            contentDiv.appendChild(ul);
+
+            itemDiv.appendChild(button);
+            itemDiv.appendChild(contentDiv);
+            accordionContainer.appendChild(itemDiv);
+
+            button.addEventListener('click', () => {
+                const isOpen = contentDiv.classList.contains('open');
+                
+                contentDiv.classList.toggle('open');
+                button.querySelector('.arrow-icon').classList.toggle('rotated');
+                if (contentDiv.classList.contains('open')) {
+                    contentDiv.style.maxHeight = contentDiv.scrollHeight + "px";
+                } else {
+                    contentDiv.style.maxHeight = null;
+                }
+            });
+        });
+
+
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const mobileMenu = document.getElementById('mobileMenu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        document.querySelectorAll('#mainNav a.nav-link, #mobileMenu a.nav-link').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (mobileMenu.classList.contains('hidden') === false) {
+                    mobileMenu.classList.add('hidden');
+                }
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    const headerOffset = document.getElementById('mainNav').offsetHeight;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+            });
+        });
+
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('#mainNav a.nav-link');
+        const mobileNavLinks = document.querySelectorAll('#mobileMenu a.nav-link');
+
+        function updateActiveNavLink() {
+            let currentSectionId = '';
+            const headerHeight = document.getElementById('mainNav').offsetHeight;
+            
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - headerHeight - 70;
+                 if (window.pageYOffset >= sectionTop) {
+                    currentSectionId = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${currentSectionId}`) {
+                    link.classList.add('active');
+                }
+            });
+             mobileNavLinks.forEach(link => {
+                link.classList.remove('active');
+                 if (link.getAttribute('href') === `#${currentSectionId}`) {
+                    link.classList.add('active');
+                }
+            });
+        }
+        window.addEventListener('scroll', updateActiveNavLink);
+        window.addEventListener('load', updateActiveNavLink);
+
+    </script>
+</body>
+</html>
